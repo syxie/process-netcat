@@ -15,11 +15,12 @@ Options:
   -w WHITELIST, --whitelist=WHITELIST
                         Whitelist of addresses to allow (server mode)
   -s, --send            We will send the PS output
-  ```
+  -f FILE, --file=FILE  File to store JSON from tasks into
+```
 
   When run without arguments, this script will listen on port 1876 and accept connections from anywhere:
   ```
-» ./main.py 
+» ./main.py
 [-] Starting up in server mode on port 1876
 ```
 
@@ -60,7 +61,7 @@ Client side messages:
 
 When run successfully, here is the output on the server side:
 ```
-» ./main.py   
+» ./main.py
 [-] Starting up in server mode on port 1876
 [-] Connection: 127.0.0.1
 [-] OK: They are sending PS
@@ -79,5 +80,51 @@ And the client side:
 [-] Sent tasks
 [-] Sent tasks
 [-] Sent tasks
+```
+
+You can control the file the tasks get stored with by setting the `-f` parameter.
+The default is `tasks.json`. The format is like this:
+```
+{
+    "1": {
+        "name": "runit",
+        "status": "sleeping",
+        "created": 1614352697.01
+    },
+    "2": {
+        "name": "kthreadd",
+        "status": "sleeping",
+        "created": 1614352697.01
+    },
+    "3": {
+        "name": "rcu_gp",
+        "status": "idle",
+        "created": 1614352697.12
+    },
+    "4": {
+        "name": "rcu_par_gp",
+        "status": "idle",
+        "created": 1614352697.12
+    },
+    "6": {
+        "name": "kworker/0:0H-kblockd",
+        "status": "idle",
+        "created": 1614352697.12
+    },
+    "8": {
+        "name": "mm_percpu_wq",
+        "status": "idle",
+        "created": 1614352697.12
+    },
+    "9": {
+        "name": "rcu_tasks_kthre",
+        "status": "sleeping",
+        "created": 1614352697.12
+    },
+    "10": {
+        "name": "rcu_tasks_rude_",
+        "status": "sleeping",
+        "created": 1614352697.12
+    },
 ```
 
