@@ -32,11 +32,14 @@ def getopts():
 
 
 class ProcessNetcat(protocol.Protocol): # This is both a client and a server
+    def __init__(self, options):
+        self.options = options
+
     def connectionMade(self):
         self.addr = self.transport.getPeer()
         log(f"Connection: {self.addr.host}")
-        if options.whitelist:
-            if not self.addr.host in options.whitelist:
+        if self.options.whitelist:
+            if not self.addr.host in self.options.whitelist:
                 log(f"Peer not whitelisted, dropping connection: {self.addr.host}")
                 self.transport.loseConnection()
 
@@ -60,15 +63,17 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
         if dtype == "hello":
             if not "send" in data.keys():
                 return
-            if data["send"] and options.send:
+            if data["send"] and self.options.send:
                 msg = f"We're both sending PS output, please configure the -s flag only on one side"
                 log(msg)
                 self.send_err(msg)
-            elif not data["send"] and not options.send:
+
+            elif not data["send"] and not self.options.send:
                 msg = f"Neither side is sending PS output, please configure the -s flag on one side"
                 log(msg)
                 self.send_err(msg)
-            elif options.send:
+
+            elif self.options.send:
                 log(f"OK: We are sending PS")
                 self.send_ok()
                 self.send_tasks()
@@ -89,9 +94,10 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
 
         elif dtype == "ok":
             log("Received OK from server")
-            if options.send:
+            if self.options.send:
                 log("Starting PS transmission")
                 self.send_tasks()
+            return
 
     def dataReceived(self, data):
         dataSplit = data.split(b"\r\n") # Allow multiple messages at once without getting confused
@@ -108,7 +114,7 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
     def send_hello(self):
         hello = dumps({
             "type": "hello",
-            "send": options.send}) # Tell the other server whether or not we expect to send
+            "send": self.options.send}) # Tell the other server whether or not we expect to send
                                    #  PS output, so they can check if both or neither sides
                                    #  have it configured and let us know
         self.say(hello)
@@ -133,41 +139,42 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
         lc.start(5)
         taskSender = lc
 
+    def get_tasks(self):
+        return {p.pid: p.info for p in psutil.process_iter(["name", "username"])}
+
     def _send_tasks(self):
-        tasks = {}
-        for i in psutil.process_iter():
-            tasks[i.pid] = {
-                    "name": i.name(),
-                    "status": i.status(),
-                    "created": i.create_time()}
+        tasks = self.get_tasks()
         self.say(dumps({
             "type": "tasks",
             "tasks": tasks}))
         log(f"Sent tasks")
 
     def store_tasks(self, tasks):
-        with open(options.file, "w") as f:
+        with open(self.options.file, "w") as f:
             dump(tasks, f, indent=4)
 
 class ProcessNetcatFactory(protocol.Factory):
+    def __init__(self, options):
+        self.options = options
+
     def buildProtocol(self, addr):
-        return ProcessNetcat()
+        return ProcessNetcat(self.options)
 
 def gotProtocol(p):
     p.send_hello()
 
-def startListener():
+def startListener(options):
     global serverInst
     if options.client:
         point = TCP4ClientEndpoint(reactor, options.client, options.port)
-        d = connectProtocol(point, ProcessNetcat())
+        d = connectProtocol(point, ProcessNetcat(options))
         d.addCallback(gotProtocol)
     else:
-        serverInst = ProcessNetcatFactory()
+        serverInst = ProcessNetcatFactory(options)
         endpoint = TCP4ServerEndpoint(reactor, options.port)
         endpoint.listen(serverInst)
     reactor.run()
 
 if __name__ == "__main__":
     options = getopts()
-    startListener()
+    startListener(options)
