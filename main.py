@@ -10,6 +10,9 @@ import psutil
 serverInst = None
 taskSender = None
 
+def log(data):
+    print(f"[-] {data}")
+
 def getopts():
     parser = optparse.OptionParser("Process Netcat", version="% 0.1")
     parser.add_option("-c", "--client", dest="client", type="string", help="Address to connect to (client mode)")
@@ -27,9 +30,6 @@ def getopts():
         log(f"Starting up in server mode on port {options.port}")
     return options
 
-def log(data):
-    print(f"[-] {data}")
-
 
 class ProcessNetcat(protocol.Protocol): # This is both a client and a server
     def connectionMade(self):
@@ -44,7 +44,7 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
         global taskSender
         log(f"Connection lost: {self.addr.host}: {reason.getErrorMessage()}")
         if not taskSender == None:
-            taskSender.stop()
+            taskSender.stop() # Don't continue to try sending tasks if the connection isn't
             log(f"Ceasing task sending")
             taskSender = None
 
@@ -94,7 +94,6 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
                 self.send_tasks()
 
     def dataReceived(self, data):
-        #log(f"Data received from {self.addr}: {data}")
         dataSplit = data.split(b"\r\n") # Allow multiple messages at once without getting confused
         for i in dataSplit:
             if not i == b"":
@@ -109,12 +108,14 @@ class ProcessNetcat(protocol.Protocol): # This is both a client and a server
     def send_hello(self):
         hello = dumps({
             "type": "hello",
-            "send": options.send})
+            "send": options.send}) # Tell the other server whether or not we expect to send
+                                   #  PS output, so they can check if both or neither sides
+                                   #  have it configured and let us know
         self.say(hello)
         return
 
-    def send_ok(self):
-        msg = dumps({
+    def send_ok(self): # Let the other side know all is okay, they can start transmitting if
+        msg = dumps({  #  that is appropriate
             "type": "ok"})
         self.say(msg)
         return
@@ -152,8 +153,6 @@ class ProcessNetcatFactory(protocol.Factory):
     def buildProtocol(self, addr):
         return ProcessNetcat()
 
-    #def clientConnectionLost(self, addr)
-
 def gotProtocol(p):
     p.send_hello()
 
@@ -167,7 +166,6 @@ def startListener():
         serverInst = ProcessNetcatFactory()
         endpoint = TCP4ServerEndpoint(reactor, options.port)
         endpoint.listen(serverInst)
-    #reactor.listenTCP(1237, SpawnFactory())
     reactor.run()
 
 if __name__ == "__main__":
