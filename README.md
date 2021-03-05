@@ -2,6 +2,8 @@ Process Netcat
 ==============
 
 Flexible program to send process lists between servers.
+
+## Usage
 ```
 Usage: Process Netcat
 
@@ -18,8 +20,8 @@ Options:
   -f FILE, --file=FILE  File to store JSON from tasks into
 ```
 
-  When run without arguments, this script will listen on port 1876 and accept connections from anywhere:
-  ```
+When run without arguments, this script will listen on port 1876 and accept connections from anywhere:
+```
 » ./main.py
 [-] Starting up in server mode on port 1876
 ```
@@ -82,49 +84,30 @@ And the client side:
 [-] Sent tasks
 ```
 
+## Tasks storage
 You can control the file the tasks get stored with by setting the `-f` parameter.
 The default is `tasks.json`. The format is like this:
 ```
 {
     "1": {
         "name": "runit",
-        "status": "sleeping",
-        "created": 1614352697.01
+        "username": "root"
     },
     "2": {
         "name": "kthreadd",
-        "status": "sleeping",
-        "created": 1614352697.01
+        "username": "root"
     },
-    "3": {
-        "name": "rcu_gp",
-        "status": "idle",
-        "created": 1614352697.12
-    },
-    "4": {
-        "name": "rcu_par_gp",
-        "status": "idle",
-        "created": 1614352697.12
-    },
-    "6": {
-        "name": "kworker/0:0H-kblockd",
-        "status": "idle",
-        "created": 1614352697.12
-    },
-    "8": {
-        "name": "mm_percpu_wq",
-        "status": "idle",
-        "created": 1614352697.12
-    },
-    "9": {
-        "name": "rcu_tasks_kthre",
-        "status": "sleeping",
-        "created": 1614352697.12
-    },
-    "10": {
-        "name": "rcu_tasks_rude_",
-        "status": "sleeping",
-        "created": 1614352697.12
-    },
+    "3":
+```
+
+## Testing
+You can run the tests with:
+```
+» python -m unittest tests/test_main.py  
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 0.049s
+
+OK
 ```
 
